@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+
+# Check dependencies
+if ! command -v kubectl >/dev/null 2>&1; then
+    echo "Error: kubectl is not installed or not in PATH" >&2
+    exit 1
+fi
+
+# Display usage information
+usage() {
+    echo "Usage: kubectl kubeplugin <resource> <namespace>"
+    echo
+    echo "Examples:"
+    echo "  kubectl kubeplugin pods kube-system"
+    echo "  kubectl kubeplugin pods default"
+    exit 1
+}
+
+# Validate arguments
+if [[ $# -ne 2 ]]; then
+    usage
+fi
+
+RESOURCE_TYPE="$1"
+NAMESPACE="$2"
+
+# Retrieve resource statistics
+STATS=$(kubectl top "$RESOURCE_TYPE" -n "$NAMESPACE" --no-headers 2>&1)
+STATUS=$?
+
+if [[ $STATUS -ne 0 ]]; then
+    echo "Error: Failed to retrieve resource statistics" >&2
+    echo "$STATS" >&2
+    exit "$STATUS"
+fi
+
+# Display statistics
+#echo "Resource, Namespace, Name, CPU, Memory"
+
+#if [[ -z "$STATS" ]]; then
+#    echo "No resources found in namespace: $NAMESPACE"
+#    exit 0
+#fi
+
+# Parse kubectl top output
+#echo "$STATS" | awk -v resource="$RESOURCE_TYPE" -v namespace="$NAMESPACE" '
+#{
+#    printf "%s, %s, %s, %s, %s\n", resource, namespace, $1, $2, $3
+#}'
+
+
+
+printf "%-10s %-20s %-45s %-10s %-10s\n" \
+    "Resource" "Namespace" "Name" "CPU" "Memory"
+
+echo "$STATS" | awk -v resource="$RESOURCE_TYPE" -v namespace="$NAMESPACE" '
+{
+    printf "%-10s %-20s %-45s %-10s %-10s\n", \
+        resource, namespace, $1, $2, $3
+}'
+
